@@ -1,5 +1,8 @@
 const FILTER_LIST_URL = 'https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts';
 
+// Object to store blocked ad data per tab
+let blockedData = {};
+
 async function updateRules() {
   try {
     // Fetch the ad domain list
@@ -57,4 +60,45 @@ chrome.alarms.onAlarm.addListener(alarm => {
 // Update rules on extension install or update
 chrome.runtime.onInstalled.addListener(() => {
   updateRules();
+});
+
+chrome.action.setBadgeBackgroundColor({ color: '#505050' });
+
+// Listen for blocked requests
+chrome.declarativeNetRequest.onRuleMatchedDebug.addListener((details) => {
+  const tabId = details.request.tabId;
+  if (tabId >= 0) { // Ensure it’s a valid tab
+    if (!blockedData[tabId]) {
+      blockedData[tabId] = { count: 0, urls: [] };
+    }
+    blockedData[tabId].count += 1; // Increment count
+    blockedData[tabId].urls.push(details.request.url); // Log the blocked URL
+
+    // Update the badge text for this tab
+    chrome.action.setBadgeText({
+      text: blockedData[tabId].count.toString(),
+      tabId: tabId
+    });
+
+    // Send update to popup (optional real-time update)
+    chrome.runtime.sendMessage({
+      type: 'UPDATE_BLOCKED',
+      tabId: tabId,
+      count: blockedData[tabId].count
+    });
+  }
+});
+
+// Clean up data when a tab is closed
+chrome.tabs.onRemoved.addListener((tabId) => {
+  delete blockedData[tabId];
+});
+
+// Handle requests from the popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'GET_BLOCKED') {
+    const tabId = message.tabId;
+    const data = blockedData[tabId] || { count: 0, urls: [] };
+    sendResponse(data);
+  }
 });
