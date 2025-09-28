@@ -6,16 +6,149 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MinAds</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 10px; width: 250px; }
-    #count { font-weight: bold; }
-    #list { margin-top: 10px; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 15px;
+      width: 300px;
+      margin: 0;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .stats {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+
+    #count {
+      font-weight: bold;
+      color: #d73527;
+    }
+
+    .current-site {
+      background: #e8f4fd;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      border-left: 3px solid #1976d2;
+    }
+
+    .current-site h3 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #1976d2;
+    }
+
+    .site-info {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .exclusion-status {
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .excluded { color: #4caf50; }
+    .not-excluded { color: #f44336; }
+
+    button {
+      background: #1976d2;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-right: 5px;
+      margin-bottom: 5px;
+    }
+
+    button:hover {
+      background: #1565c0;
+    }
+
+    button.secondary {
+      background: #757575;
+    }
+
+    button.secondary:hover {
+      background: #616161;
+    }
+
+    button.exclude {
+      background: #4caf50;
+    }
+
+    button.exclude:hover {
+      background: #388e3c;
+    }
+
+    button.include {
+      background: #f44336;
+    }
+
+    button.include:hover {
+      background: #d32f2f;
+    }
+
+    #list {
+      margin-top: 10px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    #list li {
+      font-size: 11px;
+      padding: 2px 0;
+      word-break: break-all;
+    }
+
+    .actions {
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+      margin-top: 15px;
+    }
+
+    .loading {
+      color: #666;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
-  <h1>MinAds</h1>
-  <p>Blocked ads on this page: <span id="count">0</span></p>
-  <button id="details">Show Details</button>
+  <div class="header">
+    <h1>MinAds</h1>
+  </div>
+
+  <div class="stats">
+    <p>Blocked ads on this page: <span id="count">0</span></p>
+    <button id="details" class="secondary">Show Details</button>
+  </div>
+
+  <div class="current-site">
+    <h3>Current Site</h3>
+    <div class="site-info">
+      <strong>Domain:</strong> <span id="currentDomain" class="loading">Loading...</span>
+    </div>
+    <div class="exclusion-status">
+      <span id="exclusionStatus" class="loading">Checking...</span>
+    </div>
+    <button id="toggleExclusion" disabled>Toggle Exclusion</button>
+  </div>
+
   <ul id="list" style="display: none;"></ul>
+
+  <div class="actions">
+    <button id="openOptions" class="secondary">Manage Excluded Domains</button>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

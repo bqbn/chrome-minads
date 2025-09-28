@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MinAds - Excluded Domains</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 6px;
+        }
+
+        .section h2 {
+            margin-top: 0;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .add-domain {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        #newDomain {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        #newDomain:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+
+        button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background: #1565c0;
+        }
+
+        button.secondary {
+            background: #757575;
+        }
+
+        button.secondary:hover {
+            background: #616161;
+        }
+
+        button.danger {
+            background: #f44336;
+        }
+
+        button.danger:hover {
+            background: #d32f2f;
+        }
+
+        .domain-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .domain-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .domain-item:last-child {
+            border-bottom: none;
+        }
+
+        .domain-item:hover {
+            background: #f5f5f5;
+        }
+
+        .domain-name {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .stats {
+            background: #e8f4fd;
+            border: 1px solid #bbdefb;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stats h3 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+
+        .import-export {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 4px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #4caf50;
+        }
+
+        .notification.error {
+            background: #f44336;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .add-domain {
+                flex-direction: column;
+            }
+
+            .import-export {
+                flex-direction: column;
+            }
+
+            .domain-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MinAds - Excluded Domains</h1>
+        <p class="description">
+            Manage domains that should be excluded from ad blocking. When you exclude a domain,
+            MinAds will not block ads on that site. This is useful for supporting websites you trust
+            or when ad blocking interferes with site functionality.
+        </p>
+
+        <div class="stats">
+            <h3>Statistics</h3>
+            <p>Total excluded domains: <strong id="domainCount">0</strong></p>
+            <p>Last updated: <strong id="lastUpdated">Never</strong></p>
+        </div>
+
+        <div class="section">
+            <h2>Add New Domain</h2>
+            <div class="add-domain">
+                <input type="text" id="newDomain" placeholder="example.com" />
+                <button id="addDomain">Add Domain</button>
+            </div>
+            <div class="help-text">
+                Enter just the domain name (e.g., "example.com"). Subdomains will automatically be included.
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Excluded Domains</h2>
+            <div id="domainList" class="domain-list">
+                <div class="empty-state">
+                    <p>No domains excluded yet.</p>
+                    <p>Add domains above to exclude them from ad blocking.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Import/Export</h2>
+            <div class="import-export">
+                <button id="exportDomains" class="secondary">Export Domains</button>
+                <button id="importDomains" class="secondary">Import Domains</button>
+                <button id="clearAll" class="danger">Clear All</button>
+            </div>
+            <div class="help-text">
+                Export your excluded domains as a JSON file for backup, or import from a previously exported file.
+            </div>
+            <input type="file" id="fileInput" accept=".json" />
+        </div>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html>
