@@ -3,6 +3,17 @@ const FILTER_LIST_URL = 'https://raw.githubusercontent.com/StevenBlack/hosts/mas
 // Object to store blocked ad data per tab
 let blockedData = {};
 
+// Load extension status from storage
+async function loadExtensionStatus() {
+  const result = await chrome.storage.sync.get(['extensionEnabled']);
+  return result.extensionEnabled !== false; // Default to true
+}
+
+// Save extension status to storage
+async function saveExtensionStatus(enabled) {
+  await chrome.storage.sync.set({ extensionEnabled: enabled });
+}
+
 // Load excluded domains from storage
 async function loadExcludedDomains() {
   const result = await chrome.storage.sync.get(['excludedDomains']);
@@ -65,8 +76,51 @@ async function filterDomainsForRules(domains) {
   });
 }
 
+// Update badge status
+async function updateBadgeStatus(enabled) {
+  if (enabled) {
+    chrome.action.setBadgeText({ text: '' });
+    chrome.action.setBadgeBackgroundColor({ color: '#505050' });
+    // Restore counts for tabs that have them
+    for (const tabId in blockedData) {
+      try {
+        const tab = await chrome.tabs.get(parseInt(tabId));
+        if (tab) {
+          chrome.action.setBadgeText({
+            text: blockedData[tabId].count.toString(),
+            tabId: parseInt(tabId)
+          });
+        }
+      } catch (e) {
+        // Tab might be closed
+      }
+    }
+  } else {
+    chrome.action.setBadgeText({ text: 'OFF' });
+    chrome.action.setBadgeBackgroundColor({ color: '#a0a0a0' });
+    // Clear tab specific badges so global 'OFF' shows
+    for (const tabId in blockedData) {
+      chrome.action.setBadgeText({ text: '', tabId: parseInt(tabId) });
+    }
+  }
+}
+
 async function updateRules() {
   try {
+    const enabled = await loadExtensionStatus();
+    updateBadgeStatus(enabled);
+    if (!enabled) {
+      // Remove all rules if disabled
+      const oldRules = await chrome.declarativeNetRequest.getDynamicRules();
+      const oldRuleIds = oldRules.map(rule => rule.id);
+      await chrome.declarativeNetRequest.updateDynamicRules({
+        removeRuleIds: oldRuleIds,
+        addRules: []
+      });
+      console.log('Extension disabled, rules removed');
+      return;
+    }
+
     // Fetch the ad domain list
     const response = await fetch(FILTER_LIST_URL);
     const text = await response.text();
@@ -127,6 +181,7 @@ chrome.alarms.onAlarm.addListener(alarm => {
 // Update rules on extension install or update
 chrome.runtime.onInstalled.addListener(() => {
   updateRules();
+  loadExtensionStatus().then(enabled => updateBadgeStatus(enabled));
 });
 
 chrome.action.setBadgeBackgroundColor({ color: '#505050' });
@@ -205,6 +260,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.type === 'UPDATE_EXCLUDED_DOMAINS') {
     saveExcludedDomains(message.domains).then(() => {
       updateRules().then(() => {
+        sendResponse({ success: true });
+      });
+    });
+    return true; // Keep message channel open for async response
+  } else if (message.type === 'GET_EXTENSION_STATUS') {
+    loadExtensionStatus().then(enabled => {
+      sendResponse({ enabled });
+    });
+    return true; // Keep message channel open for async response
+  } else if (message.type === 'TOGGLE_EXTENSION') {
+    const { enabled } = message;
+    saveExtensionStatus(enabled).then(() => {
+      updateRules().then(() => {
+        // Notify tabs
+        chrome.tabs.query({}, (tabs) => {
+          tabs.forEach(tab => {
+            chrome.tabs.sendMessage(tab.id, { type: 'EXTENSION_STATUS_CHANGED', enabled }).catch(() => {
+              // Ignore errors for tabs without content scripts
+            });
+          });
+        });
         sendResponse({ success: true });
       });
     });

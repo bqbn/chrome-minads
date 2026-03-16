@@ -1,7 +1,33 @@
 let currentDomain = '';
 let isExcluded = false;
+let isExtensionEnabled = true;
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Check extension status
+  chrome.runtime.sendMessage({ type: 'GET_EXTENSION_STATUS' }, (response) => {
+    isExtensionEnabled = response.enabled;
+    updateExtensionStatusUI();
+  });
+
+  // Toggle extension status
+  document.getElementById('toggleExtension').addEventListener('click', () => {
+    const button = document.getElementById('toggleExtension');
+    button.disabled = true;
+    button.textContent = 'Updating...';
+
+    chrome.runtime.sendMessage({
+      type: 'TOGGLE_EXTENSION',
+      enabled: !isExtensionEnabled
+    }, (response) => {
+      if (response.success) {
+        isExtensionEnabled = !isExtensionEnabled;
+        updateExtensionStatusUI();
+        showNotification(`Extension ${isExtensionEnabled ? 'enabled' : 'disabled'} successfully!`);
+      }
+      button.disabled = false;
+    });
+  });
+
   // Get the active tab and fetch blocked data
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const tabId = tabs[0].id;
@@ -145,3 +171,14 @@ chrome.runtime.onMessage.addListener((message) => {
     });
   }
 });
+
+function updateExtensionStatusUI() {
+  const button = document.getElementById('toggleExtension');
+  if (isExtensionEnabled) {
+    button.textContent = 'Disable Extension';
+    button.style.backgroundColor = '#d32f2f'; // Red for disable
+  } else {
+    button.textContent = 'Enable Extension';
+    button.style.backgroundColor = '#4caf50'; // Green for enable
+  }
+}
